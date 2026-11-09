@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Work Tracker</title>
+<style>
+:root{--bg:#f4f6fa;--card:#fff;--ink:#172033;--muted:#697386;--line:#e5e9f0;--blue:#2563eb;--blue2:#1d4ed8;--green:#15803d;--greenbg:#dcfce7;--amber:#a16207;--amberbg:#fef3c7;--shadow:0 8px 28px rgba(23,32,51,.07)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+.wrap{max-width:920px;margin:0 auto;padding:28px 18px 48px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:46px;height:46px;border-radius:14px;background:#e8efff;color:var(--blue);display:grid;place-items:center;font-size:24px}
+h1{font-size:25px;line-height:1.2;margin:0}
+.sub{color:var(--muted);font-size:13px;margin-top:4px}
+.local{font-size:12px;color:#475569;background:#e9edf4;border-radius:99px;padding:7px 11px;white-space:nowrap}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+.stat,.panel,.task{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+.stat{padding:16px}
+.stat strong{display:block;font-size:27px;line-height:1.2}
+.stat span{color:var(--muted);font-size:13px}
+.panel{padding:19px;margin-bottom:18px}
+h2{font-size:17px;margin:0 0 14px}
+.addrow{display:flex;gap:10px}
+input[type=text]{min-width:0;flex:1;border:1px solid #cfd6e2;border-radius:11px;padding:13px 14px;font:inherit;outline:none}
+input[type=text]:focus{border-color:var(--blue);box-shadow:0 0 0 3px #2563eb1c}
+button{border:0;border-radius:11px;padding:12px 17px;background:var(--blue);color:white;font:600 14px system-ui;cursor:pointer}
+button:hover{background:var(--blue2)}
+button:focus-visible,input:focus-visible{outline:3px solid #93c5fd;outline-offset:2px}
+.export-row{display:flex;justify-content:flex-end;margin-top:10px}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin:22px 2px 10px}
+.section-head h2{margin:0}
+.count{font-size:12px;color:var(--muted);background:#edf0f5;border-radius:99px;padding:4px 9px}
+.task-list{display:grid;gap:9px}
+.task{display:flex;align-items:center;gap:13px;padding:14px 15px;box-shadow:none}
+.task input{width:19px;height:19px;accent-color:var(--green);cursor:pointer;flex:none}
+.task-main{flex:1;min-width:0}
+.task-title{border:0;background:none;color:var(--ink);padding:0;text-align:left;font:600 15px/1.4 system-ui;cursor:pointer;overflow-wrap:anywhere}
+.task-title:hover{color:var(--blue);text-decoration:underline}
+.task-meta{color:var(--muted);font-size:12px;margin-top:3px}
+.status{font-size:11px;font-weight:700;border-radius:99px;padding:5px 9px;white-space:nowrap}
+.pending{background:var(--amberbg);color:var(--amber)}
+.completed{background:var(--greenbg);color:var(--green)}
+.empty{border:1px dashed #cbd3df;border-radius:14px;padding:22px;text-align:center;color:var(--muted);background:#ffffff80}
+.empty b{display:block;color:#344054;margin-bottom:4px}
+footer{text-align:center;color:var(--muted);font-size:12px;margin-top:24px}
+.modal-backdrop{position:fixed;inset:0;background:#11182780;display:none;align-items:center;justify-content:center;padding:16px;z-index:5}
+.modal-backdrop.show{display:flex}
+.modal{background:white;border-radius:18px;width:min(100%,520px);max-height:85vh;overflow:auto;padding:22px;box-shadow:0 24px 70px #0003}
+.modal-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.modal h2{font-size:20px;margin:0 0 8px;overflow-wrap:anywhere}
+.close{background:#eef1f6;color:#334155;padding:7px 11px;font-size:18px}
+.detail-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:18px 0 8px;font-weight:700}
+.history{padding-left:22px;margin:0}
+.history li{padding:5px 0}
+.modal-actions{display:flex;gap:9px;margin-top:22px;flex-wrap:wrap}
+.secondary{background:#eef2f7;color:#334155}
+.secondary:hover{background:#e1e7ef}
+.danger{background:#b91c1c}
+.danger:hover{background:#991b1b}
+@media(max-width:560px){
+ .wrap{padding:20px 13px 35px}
+ h1{font-size:21px}
+ .stats{gap:8px}
+ .stat{padding:12px}
+ .stat strong{font-size:23px}
+ .addrow{flex-direction:column}
+ .addrow button{width:100%}
+ .task{gap:10px;padding:12px}
+ .status{font-size:10px;padding:4px 7px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo" aria-hidden="true">✓</div>
+      <div><h1>Work Tracker</h1><div class="sub">Plan your work. Track completion.</div></div>
+    </div>
+    <div class="local">Saved on this device</div>
+  </header>
+
+  <section class="stats" aria-label="Work summary">
+    <div class="stat"><strong id="pendingCount">0</strong><span>Pending</span></div>
+    <div class="stat"><strong id="completedCount">0</strong><span>Completed</span></div>
+    <div class="stat"><strong id="totalCount">0</strong><span>Total works</span></div>
+  </section>
+
+  <section class="panel">
+    <h2>Add upcoming work</h2>
+    <form class="addrow" id="addForm">
+      <input id="workInput" type="text" maxlength="180" placeholder="Enter work description..." autocomplete="off" required>
+      <button type="submit">＋ Add work</button>
+    </form>
+    <div class="export-row">
+      <button type="button" class="secondary" id="exportExcel">↓ Export to Excel</button>
+    </div>
+  </section>
+
+  <div class="section-head"><h2>Pending works</h2><span class="count" id="pendingPill">0 works</span></div>
+  <section class="task-list" id="pendingList"></section>
+
+  <div class="section-head"><h2>Completed works</h2><span class="count" id="completedPill">0 works</span></div>
+  <section class="task-list" id="completedList"></section>
+
+  <footer>Your work list is stored in this browser on this device. Creation, completion and reopening times are recorded.</footer>
+</div>
+
+<div class="modal-backdrop" id="detailsBackdrop" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+  <div class="modal">
+    <div class="modal-top">
+      <div><div class="detail-label" style="margin-top:0">Work details</div><h2 id="detailTitle"></h2><span id="detailStatus" class="status pending">Pending</span></div>
+      <button class="close" id="closeDetails" aria-label="Close">×</button>
+    </div>
+    <div class="detail-label">Work history</div>
+    <ol class="history" id="historyList"></ol>
+    <div class="modal-actions">
+      <button id="detailToggle">Mark completed</button>
+      <button class="danger" id="detailDelete">Delete work</button>
+      <button class="secondary" id="closeDetails2">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const STORAGE_KEY = "workTracker.tasks.v1";
+  let tasks = [];
+  let selectedId = null;
+
+  const $ = id => document.getElementById(id);
+  const pendingList = $("pendingList");
+  const completedList = $("completedList");
+
+  function loadTasks() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      tasks = saved ? JSON.parse(saved) : [];
+      if (!Array.isArray(tasks)) tasks = [];
+      // Keep older saved tasks and history entries compatible with this version.
+      tasks.forEach(task => {
+        if (!Array.isArray(task.history)) task.history = [];
+        task.history = task.history.map(entry =>
+          typeof entry === "string" ? { event: entry, at: null } : entry
+        );
+      });
+    } catch {
+      tasks = [];
+    }
+  }
+
+  function saveTasks() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  }
+
+  function makeEmpty(message) {
+    const box = document.createElement("div");
+    box.className = "empty";
+    const bold = document.createElement("b");
+    bold.textContent = message;
+    const small = document.createElement("span");
+    small.textContent = "Add a work description above to get started.";
+    box.append(bold, small);
+    return box;
+  }
+
+  function createTaskRow(task) {
+    const row = document.createElement("article");
+    row.className = "task";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = task.status === "Completed";
+    checkbox.setAttribute("aria-label", task.status === "Completed" ? "Reopen work" : "Mark work completed");
+    checkbox.addEventListener("change", () => {
+      const completing = checkbox.checked;
+      const message = completing
+        ? "Are you sure this work is completed?"
+        : "Do you want to move this work back to Pending?";
+      const confirmed = window.confirm(message);
+      if (!confirmed) {
+        checkbox.checked = !completing;
+        return;
+      }
+      changeStatus(task.id, completing ? "Completed" : "Pending");
+    });
+
+    const main = document.createElement("div");
+    main.className = "task-main";
+    const title = document.createElement("button");
+    title.className = "task-title";
+    title.type = "button";
+    title.textContent = task.description;
+    title.addEventListener("click", () => openDetails(task.id));
+    const hint = document.createElement("div");
+    hint.className = "task-meta";
+    hint.textContent = "Tap to view details and work history";
+    main.append(title, hint);
+
+    const badge = document.createElement("span");
+    badge.className = "status " + (task.status === "Completed" ? "completed" : "pending");
+    badge.textContent = task.status;
+
+    row.append(checkbox, main, badge);
+    return row;
+  }
+
+  function render() {
+    pendingList.replaceChildren();
+    completedList.replaceChildren();
+    const pending = tasks.filter(t => t.status === "Pending");
+    const completed = tasks.filter(t => t.status === "Completed");
+
+    $("pendingCount").textContent = pending.length;
+    $("completedCount").textContent = completed.length;
+    $("totalCount").textContent = tasks.length;
+    $("pendingPill").textContent = `${pending.length} ${pending.length === 1 ? "work" : "works"}`;
+    $("completedPill").textContent = `${completed.length} ${completed.length === 1 ? "work" : "works"}`;
+
+    if (!pending.length) pendingList.append(makeEmpty("No pending works"));
+    else pending.forEach(t => pendingList.append(createTaskRow(t)));
+
+    if (!completed.length) completedList.append(makeEmpty("No completed works"));
+    else completed.forEach(t => completedList.append(createTaskRow(t)));
+
+    if (selectedId !== null && $("detailsBackdrop").classList.contains("show")) {
+      const selected = tasks.find(t => t.id === selectedId);
+      if (selected) populateDetails(selected);
+      else closeDetails();
+    }
+  }
+
+  function addTask(description) {
+    const clean = description.trim();
+    if (!clean) return;
+    tasks.unshift({
+      id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random()),
+      description: clean,
+      status: "Pending",
+      history: [{ event: "Work created", at: new Date().toISOString() }]
+    });
+    saveTasks();
+    render();
+  }
+
+  function deleteTask(id) {
+    tasks = tasks.filter(t => t.id !== id);
+    saveTasks();
+    render();
+  }
+
+  function changeStatus(id, newStatus) {
+    const task = tasks.find(t => t.id === id);
+    if (!task || task.status === newStatus) return;
+    task.status = newStatus;
+    task.history.push({
+      event: newStatus === "Completed" ? "Work completed" : "Work reopened – moved back to Pending",
+      at: new Date().toISOString()
+    });
+    saveTasks();
+    render();
+  }
+
+  function populateDetails(task) {
+    $("detailTitle").textContent = task.description;
+    const badge = $("detailStatus");
+    badge.textContent = task.status;
+    badge.className = "status " + (task.status === "Completed" ? "completed" : "pending");
+    const list = $("historyList");
+    list.replaceChildren();
+    task.history.forEach(entry => {
+      const li = document.createElement("li");
+      const eventText = typeof entry === "string" ? entry : entry.event;
+      const timeText = entry && entry.at
+        ? new Date(entry.at).toLocaleString()
+        : "Time not available for older saved entry";
+      li.textContent = `${eventText} — ${timeText}`;
+      list.append(li);
+    });
+    const toggle = $("detailToggle");
+    toggle.textContent = task.status === "Completed" ? "Move to Pending" : "Mark completed";
+    toggle.className = task.status === "Completed" ? "secondary" : "";
+  }
+
+  function openDetails(id) {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    selectedId = id;
+    populateDetails(task);
+    $("detailsBackdrop").classList.add("show");
+  }
+
+  function closeDetails() {
+    $("detailsBackdrop").classList.remove("show");
+    selectedId = null;
+  }
+
+  function exportToExcel() {
+    const pendingCount = tasks.filter(task => task.status === "Pending").length;
+    const completedCount = tasks.filter(task => task.status === "Completed").length;
+    const totalCount = tasks.length;
+
+    const formatTime = value => value ? new Date(value).toLocaleString() : "Not available";
+    const getEventName = entry => typeof entry === "string" ? entry : (entry?.event || "");
+    const getEventTime = entry => typeof entry === "string" ? null : entry?.at;
+
+    const rows = tasks.map(task => {
+      const history = task.history || [];
+      const createdEntry = history.find(entry => {
+        const name = getEventName(entry).toLowerCase();
+        return name.includes("created") || name.includes("submitted");
+      });
+      const reopenedEntries = history.filter(entry =>
+        getEventName(entry).toLowerCase().includes("reopened")
+      );
+      const completedEntries = history.filter(entry =>
+        getEventName(entry).toLowerCase().includes("completed")
+      );
+      const lastReopened = reopenedEntries.length
+        ? reopenedEntries[reopenedEntries.length - 1] : null;
+      const lastCompleted = completedEntries.length
+        ? completedEntries[completedEntries.length - 1] : null;
+
+      return [
+        task.description,
+        formatTime(getEventTime(createdEntry)),
+        lastReopened ? formatTime(getEventTime(lastReopened)) : "Not reopened",
+        task.status === "Completed" ? formatTime(getEventTime(lastCompleted)) : "",
+        task.status
+      ];
+    });
+
+    const exportRows = [
+      ["WORK TRACKER SUMMARY"],
+      ["Total Works", totalCount],
+      ["Pending Works", pendingCount],
+      ["Completed Works", completedCount],
+      [],
+      ["Work Description", "When Submitted", "Last Reopened", "When Completed", "Status"],
+      ...rows
+    ];
+
+    const escapeCsv = value => `"${String(value ?? "").replace(/"/g, '""')}"`;
+    const csv = "\uFEFF" + exportRows.map(row => row.map(escapeCsv).join(",")).join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "Work_Tracker_Detailed_Report.csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  $("exportExcel").addEventListener("click", exportToExcel);
+
+  $("addForm").addEventListener("submit", event => {
+    event.preventDefault();
+    addTask($("workInput").value);
+    $("workInput").value = "";
+    $("workInput").focus();
+  });
+
+  $("detailDelete").addEventListener("click", () => {
+    const task = tasks.find(t => t.id === selectedId);
+    if (!task) return;
+    if (!window.confirm("Delete this work and its history permanently?")) return;
+    deleteTask(task.id);
+    closeDetails();
+  });
+
+  $("detailToggle").addEventListener("click", () => {
+    const task = tasks.find(t => t.id === selectedId);
+    if (!task) return;
+    const completing = task.status !== "Completed";
+    const message = completing
+      ? "Are you sure this work is completed?"
+      : "Do you want to move this work back to Pending?";
+    if (!window.confirm(message)) return;
+    changeStatus(task.id, completing ? "Completed" : "Pending");
+  });
+
+  $("closeDetails").addEventListener("click", closeDetails);
+  $("closeDetails2").addEventListener("click", closeDetails);
+  $("detailsBackdrop").addEventListener("click", event => {
+    if (event.target === $("detailsBackdrop")) closeDetails();
+  });
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape") closeDetails();
+  });
+
+  loadTasks();
+  render();
+})();
+</script>
+</body>
+</html>
